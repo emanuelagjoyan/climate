@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ՀՀ Կլիմայի Վերընթաց Գոտիները - Ինտերակտիվ Քարտեզ</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin: 0 0 5px 0; font-size: 24px; color: #38bdf8; text-align: center; }
+        p.subtitle { margin: 0 0 20px 0; font-size: 14px; color: #94a3b8; text-align: center; }
+
+        #app-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1250px;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Ձախ վահանակ (Գոտիների ցանկ) */
+        #list-panel {
+            width: 320px;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .climate-btn {
+            background: #0f172a;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .climate-btn:hover {
+            background: #1e293b;
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        .climate-btn.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .color-badge {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.4);
+            flex-shrink: 0;
+        }
+
+        /* Քարտեզի վահանակ */
+        #map-wrapper {
+            position: relative;
+            width: 580px;
+            height: 580px;
+            background: #ffffff;
+            border: 3px solid #38bdf8;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            flex-shrink: 0;
+        }
+
+        #armenia-map-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+            display: block;
+        }
+
+        /* Ցուցասլաք քարտեզի վրա */
+        .arrow-marker {
+            position: absolute;
+            font-size: 32px;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            animation: bounce 1.2s infinite alternate;
+            filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.6));
+            line-height: 1;
+        }
+
+        @keyframes bounce {
+            0% { transform: translate(-50%, -100%); }
+            100% { transform: translate(-50%, -125%); }
+        }
+
+        /* Աջ վահանակ (Տեղեկատվություն) */
+        #info-panel {
+            width: 340px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            min-height: 580px;
+        }
+
+        .info-title {
+            font-size: 17px;
+            font-weight: bold;
+            color: #38bdf8;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 8px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-desc {
+            font-size: 13.5px;
+            color: #cbd5e1;
+            line-height: 1.6;
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 8px;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .placeholder-text {
+            color: #94a3b8;
+            font-style: italic;
+            text-align: center;
+            margin-top: 50%;
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🗺️️ ՀՀ Կլիմայի Վերընթաց Գոտիները</h1>
+    <p class="subtitle">Ընտրեք կլիմայական գոտին ցանկից՝ քարտեզի վրա դրա տարածման շրջանները տեսնելու համար</p>
+
+    <div id="app-container">
+        <!-- Գոտիների ցանկ -->
+        <div id="list-panel"></div>
+
+        <!-- Բնօրինակ Քարտեզ -->
+        <div id="map-wrapper">
+            <img id="armenia-map-img" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhRxCuSgyXcjGam-cDNxbhrkrAOFeqixhQi9ffptYCP_1TUFGMXu9yNwchN9E9N6WbLXIGrJ9kFMY0gqBBJnjJ25S1iqTMsysnEQLVwFtO9xCorWITUMedt6FmYD3KI6xVc3JhC7_qx9nJll0aqEtfh5EMp5oYiA_nGmyJ1kfwBl6hRg8_034F02IcABQ/s762/%D5%AF%D5%AC%D5%AB%D5%B4%D5%A1.png" alt="ՀՀ Կլիմայի Վերընթաց Գոտիները">
+            <div id="placed-elements"></div>
+        </div>
+
+        <!-- Տեղեկատվություն -->
+        <div id="info-panel">
+            <div id="info-content" style="display: none;">
+                <h3 class="info-title">
+                    <span id="info-badge" class="color-badge"></span>
+                    <span id="info-title"></span>
+                </h3>
+                <div class="info-desc" id="info-desc"></div>
+            </div>
+            <div id="info-placeholder" class="placeholder-text">
+                👈 Ընտրեք որևէ կլիմայական գոտի ձախ կողմի ցանկից
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const climates = [
+            { 
+                name: "Չոր մերձարևադարձային", 
+                color: "#2ba873",
+                targets: [
+                    { x: 485, y: 515 },
+                    { x: 325, y: 100 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Մեղրիի հովիտ (Սյունիք) և Նոյեմբերյանի տարածաշրջան (Տավուշ)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> Մինչև 700-900 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ 0...-1°C, հուլիսինը՝ +25...+26°C (առավելագույնը՝ մինչև +41°C)։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 300-400 մմ։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը տաք է ու երկարատև (4-5 ամիս), ձմեռը՝ կարճատև ու մեղմ։ Հայաստանի ամենաջերմ ու անսառնամանիք շրջաններն են։" 
+            },
+            { 
+                name: "Չոր, խիստ ցամաքային", 
+                color: "#f6ce95",
+                targets: [
+                    { x: 215, y: 300 },
+                    { x: 115, y: 280 },
+                    { x: 255, y: 345 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Արարատյան գոգավորություն (Արմավիր, Արարատ, Երևան, Վաղարշապատ)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 800-1000 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -4...-6°C (նվազագույնը՝ -33°C), հուլիսինը՝ +25...+26°C (առավելագույնը՝ +42°C)։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 250-300 մմ (ամենաչոր շրջաններից է)։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը տևական է, շոգ ու չոր, ձմեռը՝ համեմատաբար ցուրտ, անհողմ, ջերմաստիճանային ինվերսիայով։" 
+            },
+            { 
+                name: "Չոր ցամաքային", 
+                color: "#e29871",
+                targets: [
+                    { x: 100, y: 255 },
+                    { x: 160, y: 260 },
+                    { x: 320, y: 345 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Նախալեռնային գոտիներ (Թալին, Աշտարակ, Եղեգնաձոր, Վայք)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 1000-1400 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -4...-5°C, հուլիսինը՝ +21...+23°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 300-400 մմ։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը չոր է, տաք ու արևոտ, ձմեռը՝ չափավոր ցուրտ, կայուն ձնածածկույթը ոչ միշտ է պահպանվում։" 
+            },
+            { 
+                name: "Չափավոր ցամաքային", 
+                color: "#cf8082",
+                targets: [
+                    { x: 110, y: 235 },
+                    { x: 190, y: 230 },
+                    { x: 364, y: 340 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Միջին բարձրության լեռներ (Աբովյան, Հրազդան, Մարտունի, Վարդենիս, Սիսիան, Գորիս)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 1400-2000 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -7...-10°C, հուլիսինը՝ +18...+20°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 500-600 մմ։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը տաք է ու համեմատաբար խոնավ, ձմեռը՝ ցուրտ, կայուն ու տևական ձնածածկույթով։" 
+            },
+            { 
+                name: "Չափավոր շոգ", 
+                color: "#b0b746",
+                targets: [
+                    { x: 315, y: 115 },
+                    { x: 511, y: 439 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Տավուշի (Իջևան, Բերդ) և Սյունիքի (Կապան) ցածրադիր անտառային շրջաններ։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 800-1300 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -1...-3°C, հուլիսինը՝ +21...+23°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 500-700 մմ։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը տաք է ու մեղմ խոնավությամբ, ձմեռը՝ չափավոր մեղմ, կարճատև ձնածածկույթով։" 
+            },
+            { 
+                name: "Բարեխառն լեռնային", 
+                color: "#3b8eaf",
+                targets: [
+                    { x: 130, y: 140 },
+                    { x: 395, y: 345 },                 
+                    { x: 270, y: 120 },
+                    { x: 200, y: 180 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Լոռու, Շիրակի սարահարթեր, Դիլիջան, Ստեփանավան և Սևանի ավազան։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 1500-2200 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -5...-10°C, հուլիսինը՝ +15...+18°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 600-800 մմ (առատ)։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը չափավոր զով է, խոնավ ու հաճելի, ձմեռը՝ ցուրտ, առատ ձյունով։" 
+            },
+            { 
+                name: "Ցուրտ լեռնային", 
+                color: "#8591c8",
+                targets: [
+                    { x: 175, y: 180 },
+                    { x: 285, y: 240 },
+                    { x: 455, y: 435 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Բարձրլեռնային շրջաններ (Ապարան, Ջերմուկ, Քաջարան, լեռնանցքներ)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 2000-3000 մ։<br>" +
+                      "<strong>🌡️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -10...-13°C, հուլիսինը՝ +10...+13°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 700-900 մմ։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Ամառը կարճատև է ու զով, ձմեռը՝ երկարատև (5-6 ամիս), ձյունառատ ու խիստ ցուրտ։" 
+            },
+            { 
+                name: "Ձյունամերձ", 
+                color: "#8b6da9",
+                targets: [
+                    { x: 165, y: 185 },
+                    { x: 285, y: 250 },
+                    { x: 455, y: 455 }
+                ],
+                info: "<strong>📍 Տարածումը՝</strong> Ամենաբարձր լեռնագագաթները (Արագած, Աժդահակ, Կապուտջուղ)։<br>" +
+                      "<strong>⛰️ Բարձրությունը՝</strong> 3000 մ-ից բարձր։<br>" +
+                      "<strong>🌡️️ Ջերմաստիճանը՝</strong> Հունվարի միջինը՝ -14...-16°C, հուլիսինը՝ +6...+8°C։<br>" +
+                      "<strong>🌧️ Տեղումները՝</strong> 800-1000 մմ ևավելի։<br>" +
+                      "<strong>☀️ Բնութագիր՝</strong> Կլիման խիստ ցուրտ է, կայուն ամառ գոյություն չունի, ձյունն ու սառույցը պահպանվում են ողջ տարին։" 
+            }
+        ];
+
+        function initApp() {
+            const listPanel = document.getElementById('list-panel');
+
+            climates.forEach(climate => {
+                const btn = document.createElement('button');
+                btn.className = 'climate-btn';
+                btn.innerHTML = `<span>${climate.name}</span> <span class="color-badge" style="background:${climate.color}"></span>`;
+                btn.onclick = () => selectClimate(climate, btn);
+                listPanel.appendChild(btn);
+            });
+        }
+
+        function selectClimate(climate, clickedBtn) {
+            document.querySelectorAll('.climate-btn').forEach(btn => btn.classList.remove('active'));
+            clickedBtn.classList.add('active');
+
+            const placedElements = document.getElementById('placed-elements');
+            placedElements.innerHTML = '';
+
+            climate.targets.forEach(target => {
+                const arrow = document.createElement('div');
+                arrow.className = 'arrow-marker';
+                arrow.innerText = '📍';
+                arrow.style.left = `${(target.x / 580) * 100}%`;
+                arrow.style.top = `${(target.y / 580) * 100}%`;
+                placedElements.appendChild(arrow);
+            });
+
+            document.getElementById('info-placeholder').style.display = 'none';
+            document.getElementById('info-content').style.display = 'block';
+
+            document.getElementById('info-title').innerText = climate.name;
+            document.getElementById('info-badge').style.background = climate.color;
+            document.getElementById('info-desc').innerHTML = climate.info;
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
